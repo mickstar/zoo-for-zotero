@@ -79,7 +79,7 @@ class ZoteroAPISetup : AppCompatActivity(), Contract.View {
         firebaseAnalytics = FirebaseAnalytics.getInstance(this)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        presenter = ZoteroAPISetupPresenter(this, AuthenticationStorage(this))
+        presenter = ZoteroAPISetupPresenter(this, this)
     }
 
     override fun onNewIntent(intent: Intent?) {

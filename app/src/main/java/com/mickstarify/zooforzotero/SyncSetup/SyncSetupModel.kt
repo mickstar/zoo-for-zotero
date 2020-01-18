@@ -1,23 +1,34 @@
 package com.mickstarify.zooforzotero.SyncSetup
 
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.mickstarify.zooforzotero.BuildConfig
 import com.mickstarify.zooforzotero.LibraryActivity.LibraryActivity
+import com.mickstarify.zooforzotero.PreferenceManager
+import com.mickstarify.zooforzotero.ZooForZoteroApplication
 import com.mickstarify.zooforzotero.ZoteroAPI.BASE_URL
 import com.mickstarify.zooforzotero.ZoteroAPI.Model.KeyInfo
 import com.mickstarify.zooforzotero.ZoteroAPI.ZoteroAPIService
+import io.reactivex.Observer
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
+import io.reactivex.schedulers.Schedulers
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import retrofit2.Retrofit
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Inject
 
 class SyncSetupModel(val presenter: SyncSetupPresenter, val context: Context) :
     SyncSetupContract.Model {
+
+    @Inject
+    lateinit var preferenceManager: PreferenceManager
+
     override fun testAPIKey(apiKey: String) {
         if (apiKey.trim() == "") {
             return
@@ -30,40 +41,52 @@ class SyncSetupModel(val presenter: SyncSetupPresenter, val context: Context) :
             }
         }.build()
 
+        val authenticationStorage = AuthenticationStorage(context)
+
         val service = Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(httpClient)
             .addConverterFactory(GsonConverterFactory.create())
+            .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
             .build().create(ZoteroAPIService::class.java)
 
-        val call: Call<KeyInfo> = service.getKeyInfo(apiKey)
-        call.enqueue(object : Callback<KeyInfo> {
-            override fun onFailure(call: Call<KeyInfo>, t: Throwable) {
-                presenter.createNetworkError("There was a network error Connecting to the Zotero API.")
+        val call = service.getKeyInfo(apiKey).map { response ->
+            if (response.code() == 200) {
+                response.body()!!
+            } else {
+                throw(Exception("Got back server code ${response.code()}"))
             }
+        }
+        call.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+            .subscribe(object : Observer<KeyInfo> {
+                override fun onComplete() {
+                    Log.d("zotero","got access level library: ${authenticationStorage.getLibraryAccess()}")
+                    Log.d("zotero","got files level library: ${authenticationStorage.getFilesAccess()}")
+                    Log.d("zotero","got notes level library: ${authenticationStorage.getNotesAccess()}")
+                    Log.d("zotero","got write level library: ${authenticationStorage.getWriteAccess()}")
+                    openLibrary()
+                }
 
-            override fun onResponse(call: Call<KeyInfo>, response: Response<KeyInfo>) {
-                if (response.code() == 200) {
-                    val credStorage = AuthenticationStorage(context)
-                    val keyInfo = response.body()
-                    if (keyInfo == null) {
-                        presenter.createNetworkError("Error, got back unrecognizable data from Zotero API.")
-                        return
-                    }
-                    credStorage.setCredentials(
+                override fun onSubscribe(d: Disposable) {
+                }
+
+                override fun onNext(keyInfo: KeyInfo) {
+                    Log.d("zotero", "got keyinfo")
+                    authenticationStorage.setCredentials(
                         keyInfo.username,
                         keyInfo.userID.toString(),
                         keyInfo.key
                     )
-                    openLibrary()
+                    authenticationStorage.setLibraryAccess(keyInfo.userAccess.access.libraryAccess)
+                    authenticationStorage.setFilesAccess(keyInfo.userAccess.access.fileAccess)
+                    authenticationStorage.setNotesAccess(keyInfo.userAccess.access.notesAccess)
+                    authenticationStorage.setWriteAccess(keyInfo.userAccess.access.write)
                 }
-                if (response.code() == 404) {
-                    presenter.createNetworkError("Error your key was not found. Server Response was:\n" + response.raw())
-                } else {
-                    presenter.createNetworkError("Unknown network error, got back server code ${response.code()}")
+
+                override fun onError(e: Throwable) {
+                    presenter.createNetworkError("There was a network error Connecting to the Zotero API.")
                 }
-            }
-        })
+            })
     }
 
     //This function will be expanded when more apis are setup.
@@ -82,4 +105,7 @@ class SyncSetupModel(val presenter: SyncSetupPresenter, val context: Context) :
         (context as SyncSetupView).finish()
     }
 
+    init {
+        ((context as Activity).application as ZooForZoteroApplication).component.inject(this)
+    }
 }

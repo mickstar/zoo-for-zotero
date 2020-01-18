@@ -1,9 +1,10 @@
 package com.mickstarify.zooforzotero.SyncSetup.ZoteroAPISetup
 
+import android.content.Context
 import android.net.Uri
 import com.mickstarify.zooforzotero.SyncSetup.AuthenticationStorage
 
-class ZoteroAPISetupPresenter (val view : Contract.View, val authenticationStorage: AuthenticationStorage): Contract.Presenter {
+class ZoteroAPISetupPresenter (val view : Contract.View, context: Context): Contract.Presenter {
     override fun openLibraryView() {
         view.openLibraryView()
     }
@@ -24,7 +25,8 @@ class ZoteroAPISetupPresenter (val view : Contract.View, val authenticationStora
         view.loadURL(authorizationURL)
     }
 
-    private val model = ZoteroAPISetupModel(this)
+    private val model = ZoteroAPISetupModel(this, context)
+    val authenticationStorage = AuthenticationStorage(context)
     init {
         view.startLoadingAnimation()
         model.establishAPIConnection()

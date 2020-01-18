@@ -14,6 +14,7 @@ import com.mickstarify.zooforzotero.SyncSetup.AuthenticationStorage
 import com.mickstarify.zooforzotero.ZooForZoteroApplication
 import com.mickstarify.zooforzotero.ZoteroAPI.*
 import com.mickstarify.zooforzotero.ZoteroAPI.Model.CollectionPOJO
+import com.mickstarify.zooforzotero.ZoteroAPI.Model.KeyInfo
 import com.mickstarify.zooforzotero.ZoteroAPI.Model.Note
 import com.mickstarify.zooforzotero.ZoteroStorage.AttachmentStorageManager
 import com.mickstarify.zooforzotero.ZoteroStorage.Database.*
@@ -67,10 +68,12 @@ class LibraryActivityModel(private val presenter: Contract.Presenter, val contex
 
     @Inject
     lateinit var preferences: PreferenceManager
-
     val state = LibraryModelState()
-
     private var zoteroDB: ZoteroDB by zoteroDBPicker
+
+    var hasWriteAccess: Boolean = true
+    var hasNotesAccess: Boolean = true
+    var hasFilesAccess: Boolean = true
 
     override fun refreshLibrary(useSmallLoadingAnimation: Boolean) {
         if (!state.usingGroup) {
@@ -427,7 +430,7 @@ class LibraryActivityModel(private val presenter: Contract.Presenter, val contex
 
         Completable.fromAction {
             // used to check attachments for filechanges.
-            if (preferences.isAttachmentUploadingEnabled()) {
+            if (this.hasWriteAccess && preferences.isAttachmentUploadingEnabled()) {
                 zoteroDatabase.addRecentlyOpenedAttachments(
                     RecentlyOpenedAttachment(
                         attachment.itemKey,
@@ -641,6 +644,11 @@ class LibraryActivityModel(private val presenter: Contract.Presenter, val contex
     }
 
     override fun createNote(note: Note) {
+        if (!this.hasNotesAccess) {
+            presenter.makeToastAlert("The app does not have note access.")
+            return
+        }
+
         firebaseAnalytics.logEvent("create_note", Bundle())
         if (state.usingGroup) {
             presenter.makeToastAlert("Sorry, this isn't supported in shared collections.")
@@ -678,6 +686,10 @@ class LibraryActivityModel(private val presenter: Contract.Presenter, val contex
         firebaseAnalytics.logEvent("modify_note", Bundle())
         if (state.usingGroup) {
             presenter.makeToastAlert("Sorry, this isn't supported in shared collections.")
+            return
+        }
+        if (!this.hasNotesAccess) {
+            presenter.makeToastAlert("The app does not have note access.")
             return
         }
         zoteroAPI.modifyNote(note, zoteroDB.getLibraryVersion())
@@ -721,6 +733,10 @@ class LibraryActivityModel(private val presenter: Contract.Presenter, val contex
     }
 
     override fun deleteNote(note: Note) {
+        if (!this.hasNotesAccess) {
+            presenter.makeToastAlert("The app does not have note access.")
+            return
+        }
         firebaseAnalytics.logEvent("delete_note", Bundle())
         if (state.usingGroup) {
             presenter.makeToastAlert("Sorry, this isn't supported in shared collections.")
@@ -1366,6 +1382,23 @@ class LibraryActivityModel(private val presenter: Contract.Presenter, val contex
                 auth.getUsername(),
                 attachmentStorageManager
             )
+            // this check is neccessary because some users will have setup with the outdated setup.
+            if (!auth.hasAccess()) {
+                val d = zoteroAPI.getKeyInfo().subscribeOn(Schedulers.io()).subscribe { keyInfo ->
+                    auth.setLibraryAccess(keyInfo.userAccess.access.libraryAccess)
+                    auth.setFilesAccess(keyInfo.userAccess.access.fileAccess)
+                    auth.setNotesAccess(keyInfo.userAccess.access.notesAccess)
+                    auth.setWriteAccess(keyInfo.userAccess.access.write)
+
+                    this.hasWriteAccess = auth.getWriteAccess()
+                    this.hasNotesAccess = auth.getNotesAccess()
+                    this.hasFilesAccess = auth.getFilesAccess()
+                }
+            }
+
+            this.hasWriteAccess = auth.getWriteAccess()
+            this.hasNotesAccess = auth.getNotesAccess()
+            this.hasFilesAccess = auth.getFilesAccess()
         } else {
             presenter.createErrorAlert(
                 "Error with stored API",

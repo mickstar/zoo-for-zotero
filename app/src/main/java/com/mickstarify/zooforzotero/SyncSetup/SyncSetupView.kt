@@ -40,8 +40,6 @@ class SyncSetupView : AppCompatActivity(), SyncSetupContract.View {
         textBox.requestFocus()
     }
 
-    private lateinit var firebaseAnalytics: FirebaseAnalytics
-
     override fun showHowToZoteroSyncDialog(onProceed: () -> Unit) {
         val dialog = AlertDialog.Builder(this)
         dialog.setTitle("How to")
@@ -102,13 +100,29 @@ class SyncSetupView : AppCompatActivity(), SyncSetupContract.View {
 
     }
 
+    override fun displayDisclaimer() {
+        val alert = AlertDialog.Builder(this@SyncSetupView)
+        alert.setTitle("Disclaimer")
+        alert.setMessage(
+            "This application uses firebase (Google) analytics to track usage and report crashes. " +
+                    "All data collected is exclusively used by the developer to improve the performance of the application. " +
+                    "This application comes with ABSOLUTELY NO WARRANTY or garentees that it will not damage your zotero library. " +
+                    "While I have taken considerable care to avoid any unintential changes being made there is always a risk and I cannot " +
+                    "provide any garentees. " +
+                    "If you are uncomfortable with this I encourage you to explicitly not provide WRITE permissions to the application in the zotero api setup (uncheck the box)."
+        )
+        alert.setPositiveButton("Accept", { _, _ -> presenter.acceptedTerms() })
+        alert.setNegativeButton("Decline", { _, _ -> finish() })
+        alert.show()
+    }
+
+
     private lateinit var presenter: SyncSetupPresenter
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sync_setup)
-        firebaseAnalytics = FirebaseAnalytics.getInstance(this)
 
         presenter = SyncSetupPresenter(this, this)
     }

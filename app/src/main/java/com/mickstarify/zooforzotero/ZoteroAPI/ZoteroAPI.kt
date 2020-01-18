@@ -228,30 +228,42 @@ class ZoteroAPI(
         return observable
     }
 
-    fun testConnection(callback: (success: Boolean, message: String) -> (Unit)) {
-        println("testConnection()")
-        val zoteroAPI = buildZoteroAPI()
-        val call: Call<KeyInfo> = zoteroAPI.getKeyInfo(this.API_KEY)
-
-        call.enqueue(object : Callback<KeyInfo> {
-            override fun onResponse(call: Call<KeyInfo>, response: Response<KeyInfo>) {
-                if (response.code() == 200) {
-                    Log.d("zotero", "Successfully tested connection.")
-                    callback(true, "")
-                } else {
-                    callback(
-                        false,
-                        "error got back response code ${response.code()} body: ${response.body()}"
-                    )
-                }
+    fun getKeyInfo(): Observable<KeyInfo> {
+        val apiService = buildZoteroAPI()
+        return apiService.getKeyInfo(API_KEY).map {response ->
+            if (response.code() == 200){
+                response.body()
+            } else {
+                throw Exception("zotero server responded ${response.code()}")
             }
+        }
 
-            override fun onFailure(call: Call<KeyInfo>, t: Throwable) {
-                Log.d("zotero", "failure on item")
-                callback(false, "Failure.")
-            }
-        })
     }
+
+//    fun testConnection(callback: (success: Boolean, message: String) -> (Unit)) {
+//        println("testConnection()")
+//        val zoteroAPI = buildZoteroAPI()
+//        val call: Call<KeyInfo> = zoteroAPI.getKeyInfo(this.API_KEY)
+//
+//        call.enqueue(object : Callback<KeyInfo> {
+//            override fun onResponse(call: Call<KeyInfo>, response: Response<KeyInfo>) {
+//                if (response.code() == 200) {
+//                    Log.d("zotero", "Successfully tested connection.")
+//                    callback(true, "")
+//                } else {
+//                    callback(
+//                        false,
+//                        "error got back response code ${response.code()} body: ${response.body()}"
+//                    )
+//                }
+//            }
+//
+//            override fun onFailure(call: Call<KeyInfo>, t: Throwable) {
+//                Log.d("zotero", "failure on item")
+//                callback(false, "Failure.")
+//            }
+//        })
+//    }
 
     fun modifyNote(note: Note, libraryVersion: Int): Completable {
         val zoteroAPI = buildZoteroAPI(ifUnmodifiedSinceVersion = note.version)

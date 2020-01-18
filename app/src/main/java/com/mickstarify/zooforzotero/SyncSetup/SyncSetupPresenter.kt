@@ -16,7 +16,17 @@ class SyncSetupPresenter(private val view: SyncSetupContract.View, context: Cont
         view.startZoteroAPIActivity()
     }
 
+    override fun acceptedTerms() {
+        model.preferenceManager.setAcceptedTerms(true)
+    }
+
     override fun selectSyncSetup(option: SyncOption) {
+        if (!model.preferenceManager.hasAcceptedTerms()){
+            // user must accept this before we can proceed.
+            view.displayDisclaimer()
+            return
+        }
+
         when(option){
             SyncOption.ZoteroAPI -> {
                 view.showHowToZoteroSyncDialog({
@@ -37,7 +47,8 @@ class SyncSetupPresenter(private val view: SyncSetupContract.View, context: Cont
 
     init{
         view.initUI()
+        if (model.preferenceManager.hasAcceptedTerms() == false){
+            view.displayDisclaimer()
+        }
     }
-
-
 }

@@ -8,9 +8,11 @@ interface SyncSetupContract {
         fun showHowToZoteroSyncDialog(onProceed: () -> Unit)
         fun createAPIKeyDialog(onKeySubmit: (String) -> Unit)
         fun createAlertDialog(title: String, message: String)
+        fun displayDisclaimer()
     }
 
     interface Presenter {
+        fun acceptedTerms()
         fun selectSyncSetup(option: SyncOption)
         fun startZoteroAPISetup()
         fun hasSyncSetup(): Boolean

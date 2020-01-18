@@ -4,6 +4,8 @@ import android.content.Context
 import com.mickstarify.zooforzotero.AttachmentManager.AttachmentManagerModel
 import com.mickstarify.zooforzotero.LibraryActivity.LibraryActivityModel
 import com.mickstarify.zooforzotero.SettingsActivity
+import com.mickstarify.zooforzotero.SyncSetup.SyncSetupModel
+import com.mickstarify.zooforzotero.SyncSetup.ZoteroAPISetup.ZoteroAPISetupModel
 import com.mickstarify.zooforzotero.ZoteroStorage.AttachmentStorageManager
 import com.mickstarify.zooforzotero.ZoteroStorage.ZoteroDB.ZoteroDB
 import com.mickstarify.zooforzotero.di.module.ApplicationModule
@@ -20,4 +22,6 @@ interface ApplicationComponent {
     fun inject(attachmentManagerModel: AttachmentManagerModel)
     fun inject(attachmentStorageManager: AttachmentStorageManager)
     fun inject(zoteroDB: ZoteroDB)
+    fun inject(syncSetupModel: SyncSetupModel)
+    fun inject(apiSetupModel: ZoteroAPISetupModel)
 }

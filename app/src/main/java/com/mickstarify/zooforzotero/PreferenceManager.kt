@@ -177,6 +177,26 @@ class PreferenceManager @Inject constructor(context: Context) {
         return sharedPreferences.getBoolean("attachments_uploading_enabled", true)
     }
 
+    fun hasAcceptedTerms(): Boolean {
+        return sharedPreferences.getBoolean("accepted_terms", false)
+    }
+
+    fun setAcceptedTerms(value: Boolean){
+        val editor = sharedPreferences.edit()
+        editor.putBoolean("accepted_terms", value)
+        editor.apply()
+    }
+
+    fun firstRun(): Boolean {
+        val firstRun = sharedPreferences.getBoolean("firstrun", true)
+        if (firstRun){
+            val editor = sharedPreferences.edit()
+            editor.putBoolean("firstrun_", false)
+            editor.apply()
+        }
+        return firstRun
+    }
+
     fun firstRunForVersion25(): Boolean {
         /*check to see if this is the first time the user is opening on version 2.1c (25)*/
         val firstRun = sharedPreferences.getBoolean("firstrun_version25", true)
@@ -204,6 +224,18 @@ class PreferenceManager @Inject constructor(context: Context) {
 
     fun shouldOpenPDFOnOpen(): Boolean {
         return sharedPreferences.getBoolean("should_open_pdf_on_open", false)
+    }
+
+    fun firstRunForVersion29(): Boolean {
+        /*check to see if this is the first time the user is opening on version 2.2 (27)*/
+        val firstRun = sharedPreferences.getBoolean("firstrun_version29", true)
+        if (firstRun) {
+            val editor = sharedPreferences.edit()
+            editor.putBoolean("firstrun_version29", false)
+            editor.apply()
+        }
+        return firstRun
+
     }
 
     companion object {

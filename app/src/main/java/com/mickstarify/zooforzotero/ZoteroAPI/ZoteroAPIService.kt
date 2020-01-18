@@ -64,7 +64,7 @@ interface ZoteroAPIService {
     @GET("keys/{key}")
     fun getKeyInfo(
         @Path("key") key: String
-    ): Call<KeyInfo>
+    ): Observable<Response<KeyInfo>>
 
     @GET("users/{user}/collections")
     fun getCollections(

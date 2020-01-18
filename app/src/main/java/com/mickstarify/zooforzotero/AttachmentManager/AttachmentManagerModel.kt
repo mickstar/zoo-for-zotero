@@ -2,8 +2,10 @@ package com.mickstarify.zooforzotero.AttachmentManager
 
 import android.app.Activity
 import android.content.Context
+import android.os.Bundle
 import android.util.Log
 import com.google.common.util.concurrent.Service
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.mickstarify.zooforzotero.PreferenceManager
 import com.mickstarify.zooforzotero.SyncSetup.AuthenticationStorage
 import com.mickstarify.zooforzotero.ZooForZoteroApplication
@@ -210,6 +212,9 @@ class AttachmentManagerModel(val presenter: Contract.Presenter, val context: Con
                 }
 
                 override fun onError(e: Throwable) {
+                    FirebaseAnalytics.getInstance(context).logEvent(
+                        "error_att_loading_items",
+                        Bundle().apply { putString("error_message", e.toString()) })
                     presenter.createErrorAlert(
                         "Error loading items",
                         "There was an error loading your items. " +
